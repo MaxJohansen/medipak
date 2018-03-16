@@ -1,15 +1,14 @@
 from machine import Timer
 import time
 import gc
-import binascii
+from micropython import const
+
+GPS_I2CADDR = const(0x10)
 
 
 class L76GNSS:
-
-    GPS_I2CADDR = const(0x10)
-
     def __init__(self, pytrack=None, sda='P22', scl='P21', timeout=None):
-        if pytrack is not None:
+        if pytrack:
             self.i2c = pytrack.i2c
         else:
             from machine import I2C
@@ -43,7 +42,7 @@ class L76GNSS:
         if self.timeout is not None:
             self.chrono.reset()
             self.chrono.start()
-        nmea = b''
+        nmea = ''
         while True:
             if self.timeout is not None and self.chrono.read() >= self.timeout:
                 self.chrono.stop()
@@ -54,14 +53,14 @@ class L76GNSS:
             if not self.timeout_status:
                 gc.collect()
                 break
-            nmea += self._read().lstrip(b'\n\n').rstrip(b'\n\n')
-            gngll_idx = nmea.find(b'GNGLL')
+            nmea += self._read().decode('ascii')
+            gngll_idx = nmea.find('GNGLL')
             if gngll_idx >= 0:
                 gngll = nmea[gngll_idx:]
-                e_idx = gngll.find(b'\r\n')
+                e_idx = gngll.find('\r\n')
                 if e_idx >= 0:
                     try:
-                        gngll = gngll[:e_idx].decode('ascii')
+                        gngll = gngll[:e_idx]
                         gngll_s = gngll.split(',')
                         lat_d, lon_d = self._convert_coords(gngll_s)
                     except Exception:
@@ -72,8 +71,10 @@ class L76GNSS:
                         break
             else:
                 gc.collect()
-                if len(nmea) > 410: # i suppose it can be safely changed to 82, which is longest NMEA frame
-                    nmea = nmea[-5:] # $GNGL without last L
+                # i suppose it can be safely changed to 82, which is longest NMEA frame
+                if len(nmea) > 410:
+                    # $GNGL without last L
+                    nmea = nmea[-5:]
             time.sleep(0.1)
         self.timeout_status = True
         if debug and debug_timeout:
