@@ -2,8 +2,6 @@ from network import LoRa
 import socket
 import time
 import binascii
-import pycom
-import machine
 
 
 class Startiot:
@@ -12,28 +10,27 @@ class Startiot:
         self.app_eui = binascii.unhexlify("8000000000000006")
         self.app_key = binascii.unhexlify("8a64620c7bafddb59031f380f51dab1f")
 
-        self.lora = LoRa(mode=LoRa.LORAWAN)
-
     def connect(self, blocking=False, timeout=0, function=None):
-        self.lora.join(activation=LoRa.OTAA, auth=(
+        lora = LoRa(mode=LoRa.LORAWAN)
+        lora.join(activation=LoRa.OTAA, auth=(
             self.dev_eui, self.app_eui, self.app_key), timeout=0)
 
         if timeout == 0:
-            while not self.lora.has_joined():
-                if function == None:
-                    time.sleep(2.5)
-                else:
+            while not lora.has_joined():
+                if function:
                     function()
+                else:
+                    time.sleep(2.5)
         else:
             for x in range(timeout):
-                if self.lora.has_joined():
+                if lora.has_joined():
                     break
-                if function == None:
-                    time.sleep(2.5)
-                else:
+                if function:
                     function()
+                else:
+                    time.sleep(2.5)
 
-        if not self.lora.has_joined():
+        if not lora.has_joined():
             return False
 
         self.s = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
@@ -47,7 +44,7 @@ class Startiot:
         return True
 
     def send(self, data):
-        self.s.send(data)
+        print(self.s.send(data))
 
     def recv(self, length):
         return self.s.recv(length)
