@@ -1,4 +1,5 @@
 from enum import Enum
+import json
 
 
 class Color(Enum):
@@ -10,18 +11,27 @@ class Color(Enum):
 
 class State():
     def __init__(self, sensors):
+        """A Finite State Machine for the MedPack
+
+        :param sensors: A dict of str -> Sensor
+        """
+        self.readings = list()
+        self.sensors = sensors
         self.state = Color.WHITE
         self.wait_time = 60
-        self.sensors = sensors
-        self.readings = list()
-
-    def start(self):
-        """Runs the state-machine in a loop,
-        gouverning its own send-frequency."""
-        while True:
-            self.loop()
+        self.payload = ""
 
     def loop(self):
+        """Runs the state - machine in a loop."""
+        while True:
+            self.run_one_cycle()
+
+    def run_one_cycle(self):
+        """A single cycle:
+        - Reads all sensors and appends readings to the list
+        - Analyses the readings, changing state if necessary
+        - Sends payload to backend
+        - Waits until it is time to send another payload"""
         self.read_sensors()
         self.analyse()
         self.send_payload()
@@ -30,24 +40,26 @@ class State():
     def read_sensors(self):
         """Appends a new set of sensor readings
         to a list of dictionaries where the keys
-        are strings of the data-name and values
+        are strings of the data - name and values
         are the actual readings from the given
         sensors."""
-        self.readings.append({name: sensor.read()
-                              for name, sensor in self.sensors.items()})
+        new_readings = {name: sensor.read()
+                        for name, sensor in self.sensors.items()}
+        new_readings = {name: value for name,
+                        value in new_readings.items() if value}
+        self.readings.append(new_readings)
         while len(self.readings) > 10:
             self.readings = self.readings[1:]
 
     def wait(self):
-        print('waiting for {self.wait_time}'.format(self=self))
+        print('Stub: waiting for {self.wait_time}'.format(self=self))
 
     def send_payload(self):
-        print('Sending payload')
+        print('Stub: sending payload:', json.dumps(self.payload))
 
     def analyse(self):
-        """Looks at the x latest readings and
-        analyses each to determine if the state
-        should change"""
+        """Analyses the average of all readings
+        to determine if the state should change"""
         allvals = {}
         for reading in self.readings:
             for key, value in reading.items():
@@ -58,7 +70,8 @@ class State():
 
         averages = {key: sum(vals) / len(vals)
                     for key, vals in allvals.items()}
-        print('Analysing data...', averages)
+        print('Stub: analysing data...')
+        self.payload = averages
 
 
 if __name__ == '__main__':
@@ -66,5 +79,5 @@ if __name__ == '__main__':
     ds = DummySensor([37.1, 37.2, 37.0, 37.5, 37.8,
                       37.3, 38.0, 38.3, 38.6, 39.0])
     fsm = State({'temp': ds})
-    for _ in range(10):
-        fsm.loop()
+    for _ in range(20):
+        fsm.run_one_cycle()
