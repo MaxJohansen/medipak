@@ -8,17 +8,38 @@
 \selectlanguage{english}
 \maketitle
 
-\section*{Problem}
-In medical emergencies the process of triage is made necessary because there are often more wounded than there are personnel to take care of them. But the condition of patients who are considered lower priority could change unexpectedly which could lead to unfortunate outcomes. In a hospital these patients could be hooked up to monitoring equipment, but in the field we do not have the infrastructure required for this.
+\section*{Introduction}
+The medpack is a tool for emergency responders to track injured patients in the field. Medical emergencies all involve some amount of chaos and we aim to alleviate some of this by automatically tracking the location of patients as well as some biometric readings.
+
+    \subsection*{Problem}
+    In medical emergencies the process of triage is made necessary because there are often more wounded than there are personnel to take care of them. But the condition of patients who are considered lower priority could change unexpectedly which could lead to unfortunate outcomes. In a hospital these patients could be hooked up to monitoring equipment, but in the field we do not have the infrastructure required for this.
 
 \section*{Solution}
 We propose a portable device with an array of sensors that can quickly be attached to patients in the field to monitor their health. This device would measure things like skin temperature, motion and heart rate and track them over time. The device would transmit this data to a central dashboard that could alert medical personnel of any sudden changes like a drop in temperature, a change in motion patterns or an irregular heartbeat.
 
-\section*{Team roles}
-\begin{itemize}
-\item Raymon Hansen - Project lead and central architech
-\item Isak Sunde Singh - Technical wiz kid
-\item Mads Johansen - Chief Officer of Coffee Aquisition and Distribution
-\end{itemize}
+    \subsection*{Specifications}
+    The main requirements for this device will be \textbf{ease of use}, both when attaching a medpack to a patient and when monitoring the output as well as \textbf{reliability} of these readings. Our goal is to have a device that can be attached and activated in a matter of seconds with as little fuss as possible. Once activated the device will take periodic readings and transmit them to the backend using MQTT.
+
+    The device itself is not intended to be used for long-term monitoring, so we have some extra leeway when it comes to power usage: A single replaceable battery will suffice. A plastic strip or some kind of rip cord will separate the battery from the microcontroller. After attaching the sensor pad to a patient, removing this strip is the only step required to activate the device.
+    The Medpack web frontend should provide a map view showing the patient's position and movement along with the primary vital signs that we can measure.
+
+    \subsection*{Features}
+    After consulting with Dr. Njål T. Borch at NORUT we decided on the following features of the medpack.
+    \begin{itemize}
+    \item \textit{MUST HAVE:} GPS location with easy-to-use map display in frontend.
+    \item \textit{SHOULD HAVE:} Temperature monitoring, RGB LED to display patient color code.
+    \item \textit{COULD HAVE:} Pulse oximetry and heart rate sensor, motion sensor, speaker for alerting nearby personnel.
+    \end{itemize}
+
+\section*{Design}
+The whole point of the medpack is its ability to monitor and relay changes in a patients biometric readings. The obvious solution is to run the medpack as a state machine where each state represents the grade of severity based on previous readings and current changes. These states will be mapped to the traditional colors used in triage operations. 
+
+\textcolor{blue}{WHITE STATE} If the Medpack is not receiving any biometric data it will default to a state in which it only sends GPS signals. When it detects signs of life it will transition into its next state.
+
+\textcolor{green}{GREEN STATE} Patients in this state have stable vital signs and are not a high priority. The Medpack will take a new reading every 5 minutes to see if any irregularities have occurred. Any such irregularities will transition the Medpack into its next state.
+
+\textcolor{yellow}{YELLOW STATE} Patients in this state need closer attention, so medical personnel are notified and the frequency of readings is increased to once every minute. If the readings stabilize during Yellow state the Medpack will transition back to Green state automatically. If conditions continue to deteriorate the device will transition into its last state.
+
+\textcolor{red}{RED STATE} Patients in the red state need immediate attention. Readings are continuous in this state and the device will never transition back to the lower states without direct intervention from medical professionals, either on-site or through the monitoring frontend. The Medpack may not be of much use here, as medical personnel should attend the patient within minutes.
 
 \end{document}
