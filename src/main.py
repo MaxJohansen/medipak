@@ -1,4 +1,3 @@
-# import time
 import utime
 import json
 import pycom
