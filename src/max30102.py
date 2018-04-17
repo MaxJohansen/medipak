@@ -59,5 +59,15 @@ class MAX30102(object):
     def _read(self, addr):
         return self.i2c.readfrom_mem(MAXIM, addr)
 
+    def _read_from(self, num_bytes):
+        return self.i2c.readfrom(MAXIM, num_bytes)
+
     def reset(self):
         self.i2c.writeto_mem(MAXIM, REG_MODE_CONFIG, 0x40)
+
+    def read_fifo(self):
+        """ Returns a tuple with the 24 byte values from red LED and IR LED """
+        # Read the 24 bits and mask MSB[23:18]
+        red_led = self._read_from(24) & 0x03FFFF
+        ir_led = self._read_from(24) & 0x03FFFF
+        return red_led, ir_led
