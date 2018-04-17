@@ -56,5 +56,8 @@ class MAX30102(object):
     def _write(self, addr, reg):
         self.i2c.writeto_mem(MAXIM, addr, reg)
 
+    def _read(self, addr):
+        return self.i2c.readfrom_mem(MAXIM, addr)
+
     def reset(self):
         self.i2c.writeto_mem(MAXIM, REG_MODE_CONFIG, 0x40)
