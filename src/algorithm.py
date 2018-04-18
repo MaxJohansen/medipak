@@ -28,5 +28,40 @@ def max_heart_rate_and_oxygen_sat(ir_buffer, red_buffer):
     n_th1 = max(min(n_th1, 60), 30)
 
     # Use peak detector as valley-detector
-    ir_valley_locs = [0] * 15
-    maxim_find_peaks()
+    maxim_find_peaks(an_x, n_th1, 4, 15)
+
+def maxim_find_peaks(an_x, min_height, min_distance, max_peaks):
+    """Find peaks.
+    Find at most max_peaks peaks above min_height aka 'n_th1'
+    separated by at least min_distance.
+    """
+    
+    all_peaks = maxim_peaks_above_min_height(an_x, min_height)
+    real_peaks = maxim_remove_close_peaks(all_peaks, min_distance)
+    return real_peaks
+
+def maxim_peaks_above_min_height(an_x, min_height):
+    """Find all peaks above min_height.
+    Return a list of those values.
+    """
+    peaks = []
+    i = 1
+    while i < len(an_x):
+        # This STARTS a peak
+        if an_x[i] > min_height and an_x[i] > an_x[i-1]:
+            width = 1
+            # Flat area
+            while i + width < len(an_x) and an_x[i] == an_x[i+width]:
+                width += 1
+            # The peak continues to rise
+            if an_x[i] < an_x[i+width]:
+                i += 1
+            # The peak has ended
+            else:
+                peaks.append((i, an_x[i]))
+                i += width
+        i += 1
+    return peaks
+
+def maxim_remove_close_peaks(peaks, min_distance):
+    return peaks
