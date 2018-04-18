@@ -1,12 +1,12 @@
-"""Algorithm module to calculate heartrate from 
+"""Algorithm module to calculate heartrate from
 pulse sensor - RD117."""
+
 
 def max_heart_rate_and_oxygen_sat(ir_buffer, red_buffer):
     """Calculate heart rate and Sp02 level. Keeping close to the original
     horror of 'algorithm.cpp' until we know what it does...
     ir_buffer - list()
     red_buffer - list()
-    return 
     """
     # calculate DC mean and subtract DC from ir
     ir_mean = sum(ir_buffer) / len(ir_buffer)
@@ -23,26 +23,28 @@ def max_heart_rate_and_oxygen_sat(ir_buffer, red_buffer):
 
     # Calculate threshold based on the moving average
     n_th1 = sum(moving) / len(ir_buffer)
-    
+ 
     # Clamp threshold between 30 and 60 because...?!
     n_th1 = max(min(n_th1, 60), 30)
 
     # Use peak detector as valley-detector
     maxim_find_peaks(an_x, n_th1, 4, 15)
 
+
 def maxim_find_peaks(an_x, min_height, min_distance, max_peaks):
     """Find peaks.
     Find at most max_peaks peaks above min_height aka 'n_th1'
     separated by at least min_distance.
     """
-    
+
     all_peaks = maxim_peaks_above_min_height(an_x, min_height)
     real_peaks = maxim_remove_close_peaks(all_peaks, min_distance)
     return real_peaks
 
+
 def maxim_peaks_above_min_height(an_x, min_height):
     """Find all peaks above min_height.
-    Return a list of those values.
+    Return a list of tuples containing the index and the value.
     """
     peaks = []
     i = 1
@@ -61,7 +63,28 @@ def maxim_peaks_above_min_height(an_x, min_height):
                 peaks.append((i, an_x[i]))
                 i += width
         i += 1
+
     return peaks
 
+
 def maxim_remove_close_peaks(peaks, min_distance):
-    return peaks
+    """Remove peaks separated by at least min_distance."""
+    # Order list from large to small
+    # [(5, 10), (10, 13), (15, 7), (20, 11)]
+    # would be:
+    # [(10, 13), (20, 11), (5, 10), (15, 7)]
+    #peaks = sorted(peaks, key=lambda x: -x[1])
+    filtered_peaks = []
+    for i in range(1, len(peaks)):
+        # Look at each peaks distance to its previous
+        dist_to_previous = peaks[i][0] - peaks[i-1][0]
+        if dist_to_previous > min_distance:
+            # Keep the previous
+            filtered_peaks.append(peaks[i - 1])
+
+    # Also check last peaks distance to previous
+    dist_between_last_peaks = peaks[i][0] - peaks[i - 1][0]
+    if dist_between_last_peaks > min_distance:
+        filtered_peaks.append(peaks[i])
+
+    return filtered_peaks
