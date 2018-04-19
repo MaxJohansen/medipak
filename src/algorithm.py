@@ -1,3 +1,5 @@
+import unittest
+
 """Algorithm module to calculate heartrate from
 pulse sensor - RD117."""
 
@@ -88,3 +90,42 @@ def maxim_remove_close_peaks(peaks, min_distance):
         filtered_peaks.append(peaks[i])
 
     return filtered_peaks
+
+
+class TestPeakMethods(unittest.TestCase):
+
+    def test_peaks_above_min_height_three_peaks(self):
+        """Should find three peaks above 4."""
+        peaks = [1,2,3,4,5,4,3,2,1,2,3,4,5,4,3,2,1,2,3,4,5,3,2,1]
+        min_height = 4
+        should_find = [(4, 5), (12, 5), (20, 5)]
+        peaks_found = maxim_peaks_above_min_height(peaks, min_height)
+        self.assertEqual(peaks_found, should_find)
+
+    def test_peaks_above_min_height_no_peaks(self):
+        """Should not find peaks above 6."""    
+        peaks = [1,2,3,4,5,4,3,2,1,2,3,4,5,4,3,2,1,2,3,4,5,3,2,1]
+        min_height = 6
+        should_find = []
+        peaks_found = maxim_peaks_above_min_height(peaks, min_height)
+        self.assertEqual(peaks_found, should_find)
+
+    def test_peaks_above_min_height_one_peak(self):
+        """Should find only one peak above 7."""    
+        peaks = [1,2,3,4,5,4,3,2,1,2,3,4,8,4,3,2,1,2,3,4,5,3,2,1]
+        min_height = 7
+        should_find = [(12, 8)]
+        peaks_found = maxim_peaks_above_min_height(peaks, min_height)
+        self.assertEqual(peaks_found, should_find)
+
+    # Moving on to remove close peaks
+    def test_remove_close_peaks(self):
+        """Should remove one peak."""    
+        peaks = [(5, 8), (10, 9), (12, 7), (20, 8), (25, 10)]
+        min_distance = 3
+        should_find = [(5, 8), (12, 7), (20, 8), (25, 10)]
+        peaks_found = maxim_remove_close_peaks(peaks, min_distance)
+        self.assertEqual(peaks_found, should_find)
+
+if __name__ == '__main__':
+    unittest.main()
