@@ -1,8 +1,10 @@
-import unittest
-
 """Algorithm module to calculate heartrate from
 pulse sensor - RD117."""
 
+# Constants
+
+# Sample frequency
+FS = 25
 
 def max_heart_rate_and_oxygen_sat(ir_buffer, red_buffer):
     """Calculate heart rate and Sp02 level. Keeping close to the original
@@ -30,7 +32,28 @@ def max_heart_rate_and_oxygen_sat(ir_buffer, red_buffer):
     n_th1 = max(min(n_th1, 60), 30)
 
     # Use peak detector as valley-detector
-    maxim_find_peaks(an_x, n_th1, 4, 15)
+    peaks = maxim_find_peaks(an_x, n_th1, 4, 15)
+
+    peak_interval_sum = 0
+    if len(peaks) >= 2:
+        for i in range(1, len(peaks)):
+            peak_interval_sum += peaks[i][0] - peaks[i - 1][0]
+        peak_interval_sum = peak_interval_sum / len(peaks)
+        heart_rate = (FS * 60) / peak_interval_sum
+        heart_rate_valid = True
+    else:
+        # Unable to calculate due to lack of peaks
+        heart_rate = -999
+        heart_rate_valid = False
+    
+    # Testing heart rate
+    return heart_rate
+    # -------------
+    # Moving on to SPO2 calculation
+    # RED = y   IR = x
+    an_x = ir_buffer
+    an_y = red_buffer
+
 
 
 def maxim_find_peaks(an_x, min_height, min_distance, max_peaks):
@@ -89,130 +112,3 @@ def maxim_remove_close_peaks(peaks, min_distance):
         prev = curr
 
     return result
-
-
-class TestPeakMethods(unittest.TestCase):
-
-    def test_peaks_above_min_height_three_peaks(self):
-        """Should find three peaks above 4."""
-        peaks = [1,2,3,4,5,4,3,2,1,2,3,4,5,4,3,2,1,2,3,4,5,3,2,1]
-        min_height = 4
-        
-        peaks_found = maxim_peaks_above_min_height(peaks, min_height)
-
-        expected = [(4, 5), (12, 5), (20, 5)]
-        self.assertEqual(expected, peaks_found)
-
-    def test_peaks_above_min_height_no_peaks(self):
-        """Should not find peaks above 6."""
-        peaks = [1,2,3,4,5,4,3,2,1,2,3,4,5,4,3,2,1,2,3,4,5,3,2,1]
-        min_height = 6
-
-        peaks_found = maxim_peaks_above_min_height(peaks, min_height)
-
-        expected = []
-        self.assertEqual(expected, peaks_found)
-
-    def test_peaks_above_min_height_one_peak(self):
-        """Should find only one peak above 7."""
-        peaks = [1,2,3,4,5,4,3,2,1,2,3,4,8,4,3,2,1,2,3,4,5,3,2,1]
-        min_height = 7
-        
-        peaks_found = maxim_peaks_above_min_height(peaks, min_height)
-
-        expected = [(12, 8)]
-        self.assertEqual(expected, peaks_found)
-
-    # Moving on to remove close peaks()
-    def test_remove_close_peaks_one(self):
-        """Should remove one peak."""
-        peaks = [(5, 8), (10, 9), (12, 7), (20, 8), (25, 10)]
-        min_distance = 3
-
-        peaks_found = maxim_remove_close_peaks(peaks, min_distance)
-
-        expected = [(5, 8), (10, 9), (20, 8), (25, 10)]
-        self.assertEqual(expected, peaks_found)
-
-    def test_remove_every_second_peak(self):
-        """Should remove the minimal amount of peaks."""
-        peaks = [(5, 10), (7, 10), (9, 10), (11, 10), (13, 10), (15, 10), (17, 10)]
-        min_distance = 3
-
-        peaks_found = maxim_remove_close_peaks(peaks, min_distance)
-
-        expected = [(5, 10), (9, 10), (13, 10), (17, 10)]
-        self.assertEqual(expected, peaks_found)
-
-    def test_remove_every_second_but_not_second_to_last(self):
-        """Should remove the minimal amount of peaks, but not all."""
-        peaks = [(5, 10), (7, 10), (9, 10), (11, 10), (13, 10), (17, 10)]
-        min_distance = 3
-
-        peaks_found = maxim_remove_close_peaks(peaks, min_distance)
-
-        expected = [(5, 10), (9, 10), (13, 10), (17, 10)]
-        self.assertEqual(expected, peaks_found)
-
-    def test_remove_all_but_first(self):
-        """Should remove the minimal amount of peaks."""
-        peaks = [(5, 10), (6, 10), (7, 10), (8, 10)]
-        min_distance = 4
-
-        peaks_found = maxim_remove_close_peaks(peaks, min_distance)
-
-        expected = [(5, 10)]
-        self.assertEqual(expected, peaks_found)
-
-    def test_remove_none(self):
-        """Should not remove one."""
-        peaks = [(5, 10)]
-        min_distance = 3
-
-        peaks_found = maxim_remove_close_peaks(peaks, min_distance)
-
-        expected = [(5, 10)]
-        self.assertEqual(expected, peaks_found)
-
-    def test_remove_none_of_many(self):
-        """Should not remove any of two."""
-        peaks = [(5, 10), (20, 10)]
-        min_distance = 3
-
-        peaks_found = maxim_remove_close_peaks(peaks, min_distance)
-
-        expected = [(5, 10), (20, 10)]
-        self.assertEqual(expected, peaks_found)
-
-    def test_remove_nothing_from_a_lot(self):
-        """Should not remove any from a loooot"""
-        peaks = [(5, 10), (15, 10), (20, 10), (24, 10), (27, 10)]
-        min_distance = 3
-
-        peaks_found = maxim_remove_close_peaks(peaks, min_distance)
-
-        expected = [(5, 10), (15, 10), (20, 10), (24, 10), (27, 10)]
-        self.assertEqual(expected, peaks_found)
-
-    def test_remove_last_from_a_lot(self):
-        """Should remove last from a lot"""
-        peaks = [(5, 10), (15, 10), (20, 10), (24, 10), (27, 10), (28, 45)]
-        min_distance = 3
-
-        peaks_found = maxim_remove_close_peaks(peaks, min_distance)
-
-        expected = [(5, 10), (15, 10), (20, 10), (24, 10), (27, 10)]
-        self.assertEqual(expected, peaks_found)
-    
-    def test_should_remove_nothing_from_empty(self):
-        """Should return empty list if no peaks are given"""
-        peaks = []
-        min_distance = 3
-
-        peaks_found = maxim_remove_close_peaks(peaks, min_distance)
-
-        expected = []
-        self.assertEqual(expected, peaks_found)
-
-if __name__ == '__main__':
-    unittest.main()
